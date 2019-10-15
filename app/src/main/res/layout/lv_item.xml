@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="10dp"
+        android:orientation="vertical">
+
+    <LinearLayout
+            android:id="@+id/lv1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+        <TextView
+                android:text="日期："
+                android:textSize="18sp"
+                android:layout_marginTop="5dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
+        </TextView>
+        <TextView
+                android:id="@+id/date"
+                android:text=""
+                style="@style/MyTextView">
+        </TextView>
+    </LinearLayout>
+
+    <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+        <RelativeLayout
+                android:layout_weight="1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+            <TextView
+                    android:id="@+id/rl_type"
+                    android:text="类型："
+                    android:textSize="18sp"
+                    android:layout_marginTop="5dp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content">
+            </TextView>
+            <TextView
+                    android:id="@+id/type"
+                    android:text=""
+                    style="@style/MyTextView"
+                    android:layout_toRightOf="@+id/rl_type">
+            </TextView>
+
+            <TextView
+                    android:id="@+id/rl_person"
+                    android:text="人员："
+                    android:textSize="18sp"
+                    android:layout_marginTop="5dp"
+                    android:layout_below="@id/type"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content">
+            </TextView>
+            <TextView
+                    android:id="@+id/person"
+                    android:text=""
+                    style="@style/MyTextView"
+                    android:layout_below="@id/type"
+                    android:layout_toRightOf="@id/rl_person">
+            </TextView>
+        </RelativeLayout>
+
+        <RelativeLayout
+                android:layout_weight="1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+            <TextView
+                    android:id="@+id/rl_state"
+                    android:text="状态："
+                    android:textSize="18sp"
+                    android:layout_marginTop="5dp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content">
+            </TextView>
+            <TextView
+                    android:id="@+id/state"
+                    android:text=""
+                    style="@style/MyTextView"
+                    android:layout_toRightOf="@+id/rl_state">
+            </TextView>
+
+            <TextView
+                    android:id="@+id/rl_number"
+                    android:text="数量："
+                    android:textSize="18sp"
+                    android:layout_marginTop="5dp"
+                    android:layout_below="@id/state"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content">
+            </TextView>
+            <TextView
+                    android:id="@+id/number"
+                    android:text=""
+                    style="@style/MyTextView"
+                    android:layout_below="@id/state"
+                    android:layout_toRightOf="@id/rl_state">
+            </TextView>
+        </RelativeLayout>
+    </LinearLayout>
+
+</LinearLayout>
