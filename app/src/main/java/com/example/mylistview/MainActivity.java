@@ -1,18 +1,14 @@
 package com.example.mylistview;
 
-import android.content.Context;
 import android.graphics.*;
-import android.media.Image;
 import android.os.Looper;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.view.Gravity;
 import android.view.View;
 import android.widget.*;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.EncodeHintType;
-import com.google.zxing.MultiFormatWriter;
 import com.google.zxing.WriterException;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
@@ -23,11 +19,7 @@ import com.zebra.sdk.printer.PrinterLanguage;
 import com.zebra.sdk.printer.ZebraPrinter;
 import com.zebra.sdk.printer.ZebraPrinterFactory;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
@@ -56,8 +48,9 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 String content = editText.getText().toString();
                 Bitmap bitmap = generateBitmap(content,180,180);
-                bitmap = addTextBitmap(bitmap,"测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试");
-                doPrintQRCode(bitmap);
+                Bitmap textBitmap = addText("测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试",180,180);
+                Bitmap result = mixtureBitmap(bitmap,textBitmap);
+                doPrintQRCode(result);
             }
         });
 
@@ -66,8 +59,9 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 String content = editText.getText().toString();
                 Bitmap bitmap = generateBitmap(content,180,180);
-                bitmap = addTextBitmap(bitmap,"测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试");
-                imageView.setImageBitmap(bitmap);
+                Bitmap textBitmap = addText("测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试",180,180);
+                Bitmap result = mixtureBitmap(bitmap,textBitmap);
+                imageView.setImageBitmap(result);
             }
         });
     }
@@ -83,11 +77,13 @@ public class MainActivity extends AppCompatActivity {
                         try {
                             ZebraPrinter printer = ZebraPrinterFactory.getInstance(PrinterLanguage.ZPL, connection);
                             Looper.prepare();
-                            /*//打印图片的另一种方法
+                            /*
+                            //打印图片的另一种方法
                             String str = "^XA\n^FO170,30\n^XGR:IMAGE.GRF,1,1^FS^XZ";
                             printer.storeImage("R:IMAGE.GRF", ZebraImageFactory.getImage(bitmap), 360, 360);
-                            connection.write(str.getBytes());*/
-                            printer.printImage(ZebraImageFactory.getImage(bitmap), 0, 20, 360, 360, false);
+                            connection.write(str.getBytes());
+                            */
+                            printer.printImage(ZebraImageFactory.getImage(bitmap), 0, 20, 720, 360, false);
                             //确保数据已进入打印机
                             Thread.sleep(500);
                             //释放资源
@@ -164,18 +160,15 @@ public class MainActivity extends AppCompatActivity {
         int textSize = 12;
         int padding = 2;
         int textLinePadding = 1;
-        //每行的文字
-        int perLineWords = (srcWidth - 2 * padding) / textSize;//纵向
-        //int perLineWords = 10;//横向
+        //每行的文字(纵向)
+        int perLineWords = (srcWidth - 2 * padding) / textSize;
         //行数
         int lineNum = text.length() / perLineWords;
         lineNum = text.length() % perLineWords == 0 ? lineNum : lineNum + 1;
         //文字总高度
         int textTotalHeight = lineNum * (textSize + textLinePadding) + 2 * padding;
-        int textTotalWidth = textSize * perLineWords + 2 * padding;
 
         Bitmap bitmap = Bitmap.createBitmap(srcWidth, srcHeight + textTotalHeight,Bitmap.Config.ARGB_8888);
-        //Bitmap bitmap = Bitmap.createBitmap(srcWidth + textTotalWidth, srcHeight, Bitmap.Config.ARGB_8888);
 
         try {
             Canvas canvas = new Canvas(bitmap);
@@ -192,13 +185,6 @@ public class MainActivity extends AppCompatActivity {
                 canvas.drawText(lineText, (srcWidth - perLineWords * textSize) / 2, startY, paint);
                 startY += textSize + textLinePadding;
             }
-            /*for (int i = 0, startX = srcWidth + perLineWords * textSize, start, end; i < lineNum; i++){
-                start = i * perLineWords;
-                end = start + perLineWords;
-                lineText = text.substring(start, end > text.length() ? text.length() : end);
-                canvas.drawText(lineText, startX, padding, paint);
-                startX += textSize + padding;
-            }*/
             canvas.save();
             canvas.restore();
         } catch (Exception e) {
@@ -206,5 +192,59 @@ public class MainActivity extends AppCompatActivity {
             e.getStackTrace();
         }
         return bitmap;
+    }
+
+    //文字bitmap
+    public Bitmap addText(String text,int width,int height){
+        int textSize = 12;
+        int padding = 3;
+        int textLinePadding = 3;
+        int perLineWords = (width - 2 * padding) / textSize;
+        int lineNum = text.length() / perLineWords;
+        lineNum = text.length() % perLineWords == 0 ? lineNum : lineNum + 1;
+
+        Bitmap textBitmap = Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
+
+       try {
+           Canvas canvas = new Canvas(textBitmap);
+           canvas.drawColor(Color.WHITE);
+
+           Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+           paint.setColor(Color.BLACK);
+           paint.setTextSize(textSize);
+
+           int startX = (width - textSize * perLineWords) / 2;
+           int startY = height / 3;
+           String lineText;
+           int start,end;
+
+           for (int i = 0; i < lineNum; i++){
+               start = i * perLineWords;
+               end = start + perLineWords;
+               lineText = text.substring(start, end > text.length() ? text.length() : end);
+               canvas.drawText(lineText,startX,startY,paint);
+               startY = startY + textSize + textLinePadding;
+           }
+           canvas.save();
+           canvas.restore();
+       }catch (Exception e){
+           e.printStackTrace();
+       }
+        return textBitmap;
+    }
+
+    //合并两个bitmap
+    public Bitmap mixtureBitmap(Bitmap first,Bitmap second){
+        int marginPadding = 8;
+        Bitmap newBitmap = Bitmap.createBitmap(first.getWidth() + second.getWidth() + marginPadding,
+                first.getHeight(), Bitmap.Config.ARGB_4444);
+        Canvas cv = new Canvas(newBitmap);
+        cv.drawColor(Color.WHITE);
+        cv.drawBitmap(first, marginPadding, 0, null);
+        cv.drawBitmap(second, first.getWidth() + marginPadding,0, null);
+        cv.save();
+        cv.restore();
+
+        return newBitmap;
     }
 }
