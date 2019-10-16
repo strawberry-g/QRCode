@@ -55,7 +55,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 String content = editText.getText().toString();
-                Bitmap bitmap = generateBitmap(content,160,160);
+                Bitmap bitmap = generateBitmap(content,180,180);
                 bitmap = addTextBitmap(bitmap,"测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试");
                 doPrintQRCode(bitmap);
             }
@@ -65,8 +65,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 String content = editText.getText().toString();
-                Bitmap bitmap = generateBitmap(content,160,160);
-                bitmap = addTextBitmap(bitmap,"测试");
+                Bitmap bitmap = generateBitmap(content,180,180);
+                bitmap = addTextBitmap(bitmap,"测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试");
                 imageView.setImageBitmap(bitmap);
             }
         });
@@ -83,16 +83,14 @@ public class MainActivity extends AppCompatActivity {
                         try {
                             ZebraPrinter printer = ZebraPrinterFactory.getInstance(PrinterLanguage.ZPL, connection);
                             Looper.prepare();
-                            /*
-                            //打印图片的另一种方法
+                            /*//打印图片的另一种方法
                             String str = "^XA\n^FO170,30\n^XGR:IMAGE.GRF,1,1^FS^XZ";
                             printer.storeImage("R:IMAGE.GRF", ZebraImageFactory.getImage(bitmap), 360, 360);
-                            connection.write(str.getBytes());
-                             */
+                            connection.write(str.getBytes());*/
                             printer.printImage(ZebraImageFactory.getImage(bitmap), 0, 20, 360, 360, false);
-                            // Make sure the data got to the printer before closing the connection
+                            //确保数据已进入打印机
                             Thread.sleep(500);
-                            // Close the insecure connection to release resources.
+                            //释放资源
                             connection.close();
                             Looper.myLooper().quit();
                         } catch (Exception ex) {
@@ -109,7 +107,6 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * 生成二维码图片
-     *
      * @param content 生成二维码的文字
      * @param width   二维码宽度
      * @param height  二维码高度
@@ -125,14 +122,13 @@ public class MainActivity extends AppCompatActivity {
         QRCodeWriter qrCodeWriter = new QRCodeWriter();
         //1、设置二维码的相关配置
         Map<EncodeHintType, Object> hints = new HashMap<>();
-        // 内容所使用编码
+        //内容所使用编码
         hints.put(EncodeHintType.CHARACTER_SET, "utf-8");
         //设置二维码四周白色区域的大小
         hints.put(EncodeHintType.MARGIN, 1);
         //设置二维码的容错性
         hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H);
-        try {
-            //构建二维码图片,QR_CODE 一种矩阵二维码
+        try {//构建二维码图片,QR_CODE 一种矩阵二维码
             //2、将配置参数传入到QRCodeWriter的encode方法生成BitMatrix(位矩阵)对象
             BitMatrix encode = qrCodeWriter.encode(content, BarcodeFormat.QR_CODE, width, height, hints);
             //3、创建像素数组,并根据BitMatrix(位矩阵)对象为数组元素赋颜色值
@@ -160,21 +156,27 @@ public class MainActivity extends AppCompatActivity {
         return null;
     }
 
+    //添加文字
     private Bitmap addTextBitmap(Bitmap bitmapSrc,String text){
         int srcWidth = bitmapSrc.getWidth();
         int srcHeight = bitmapSrc.getHeight();
         //计算text所需要的height
         int textSize = 12;
-        int padding = 3;
+        int padding = 2;
         int textLinePadding = 1;
         //每行的文字
-        int perLineWords = (srcWidth - 2 * padding) / textSize;
+        int perLineWords = (srcWidth - 2 * padding) / textSize;//纵向
+        //int perLineWords = 10;//横向
+        //行数
         int lineNum = text.length() / perLineWords;
         lineNum = text.length() % perLineWords == 0 ? lineNum : lineNum + 1;
+        //文字总高度
         int textTotalHeight = lineNum * (textSize + textLinePadding) + 2 * padding;
+        int textTotalWidth = textSize * perLineWords + 2 * padding;
 
-        Bitmap bitmap = Bitmap.createBitmap(srcWidth, srcHeight + textTotalHeight,
-                Bitmap.Config.ARGB_8888);
+        Bitmap bitmap = Bitmap.createBitmap(srcWidth, srcHeight + textTotalHeight,Bitmap.Config.ARGB_8888);
+        //Bitmap bitmap = Bitmap.createBitmap(srcWidth + textTotalWidth, srcHeight, Bitmap.Config.ARGB_8888);
+
         try {
             Canvas canvas = new Canvas(bitmap);
             canvas.drawColor(Color.WHITE);
@@ -187,9 +189,16 @@ public class MainActivity extends AppCompatActivity {
                 start = i * perLineWords;
                 end = start + perLineWords;
                 lineText = text.substring(start, end > text.length() ? text.length() : end);
-                canvas.drawText(lineText, padding, startY, paint);
+                canvas.drawText(lineText, (srcWidth - perLineWords * textSize) / 2, startY, paint);
                 startY += textSize + textLinePadding;
             }
+            /*for (int i = 0, startX = srcWidth + perLineWords * textSize, start, end; i < lineNum; i++){
+                start = i * perLineWords;
+                end = start + perLineWords;
+                lineText = text.substring(start, end > text.length() ? text.length() : end);
+                canvas.drawText(lineText, startX, padding, paint);
+                startX += textSize + padding;
+            }*/
             canvas.save();
             canvas.restore();
         } catch (Exception e) {
