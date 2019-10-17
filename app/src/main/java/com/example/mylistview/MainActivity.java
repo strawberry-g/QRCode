@@ -19,8 +19,12 @@ import com.zebra.sdk.printer.PrinterLanguage;
 import com.zebra.sdk.printer.ZebraPrinter;
 import com.zebra.sdk.printer.ZebraPrinterFactory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import static android.graphics.Typeface.MONOSPACE;
 
 public class MainActivity extends AppCompatActivity {
     private ListView listView;
@@ -48,8 +52,15 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 String content = editText.getText().toString();
                 Bitmap bitmap = generateBitmap(content,180,180);
-                Bitmap textBitmap = addText("测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试",180,180);
-                Bitmap result = mixtureBitmap(bitmap,textBitmap);
+                List list = new ArrayList();
+                list.add("aaa");
+                list.add("bbb");
+                list.add("ccc");
+                list.add("ddd");
+                list.add("测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试");
+                list.add("eee");
+                Bitmap listBitmap = addList(list,180,180);
+                Bitmap result = mixtureBitmap(bitmap,listBitmap);
                 doPrintQRCode(result);
             }
         });
@@ -59,8 +70,17 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 String content = editText.getText().toString();
                 Bitmap bitmap = generateBitmap(content,180,180);
-                Bitmap textBitmap = addText("测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试",180,180);
-                Bitmap result = mixtureBitmap(bitmap,textBitmap);
+                //Bitmap textBitmap = addText("测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试",180,180);
+                List list = new ArrayList();
+                list.add("aaa");
+                list.add("bbb");
+                list.add("ccc");
+                list.add("ddd");
+                list.add("测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试");
+                list.add("eee");
+
+                Bitmap listBitmap = addList(list,180,180);
+                Bitmap result = mixtureBitmap(bitmap,listBitmap);
                 imageView.setImageBitmap(result);
             }
         });
@@ -152,59 +172,16 @@ public class MainActivity extends AppCompatActivity {
         return null;
     }
 
-    //添加文字
-    private Bitmap addTextBitmap(Bitmap bitmapSrc,String text){
-        int srcWidth = bitmapSrc.getWidth();
-        int srcHeight = bitmapSrc.getHeight();
-        //计算text所需要的height
-        int textSize = 12;
-        int padding = 2;
-        int textLinePadding = 1;
-        //每行的文字(纵向)
-        int perLineWords = (srcWidth - 2 * padding) / textSize;
-        //行数
-        int lineNum = text.length() / perLineWords;
-        lineNum = text.length() % perLineWords == 0 ? lineNum : lineNum + 1;
-        //文字总高度
-        int textTotalHeight = lineNum * (textSize + textLinePadding) + 2 * padding;
-
-        Bitmap bitmap = Bitmap.createBitmap(srcWidth, srcHeight + textTotalHeight,Bitmap.Config.ARGB_8888);
-
-        try {
-            Canvas canvas = new Canvas(bitmap);
-            canvas.drawColor(Color.WHITE);
-            canvas.drawBitmap(bitmapSrc, 0, 0, null);
-            Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            paint.setColor(Color.BLACK);
-            paint.setTextSize(textSize);
-            String lineText;
-            for (int i = 0, startY = srcHeight + textSize, start, end; i < lineNum; i++) {
-                start = i * perLineWords;
-                end = start + perLineWords;
-                lineText = text.substring(start, end > text.length() ? text.length() : end);
-                canvas.drawText(lineText, (srcWidth - perLineWords * textSize) / 2, startY, paint);
-                startY += textSize + textLinePadding;
-            }
-            canvas.save();
-            canvas.restore();
-        } catch (Exception e) {
-            bitmap = null;
-            e.getStackTrace();
-        }
-        return bitmap;
-    }
-
-    //文字bitmap
+    //生成文字bitmap
     public Bitmap addText(String text,int width,int height){
-        int textSize = 12;
-        int padding = 3;
+        int textSize = 15;
+        int padding = 5;
         int textLinePadding = 3;
         int perLineWords = (width - 2 * padding) / textSize;
         int lineNum = text.length() / perLineWords;
         lineNum = text.length() % perLineWords == 0 ? lineNum : lineNum + 1;
 
         Bitmap textBitmap = Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
-
        try {
            Canvas canvas = new Canvas(textBitmap);
            canvas.drawColor(Color.WHITE);
@@ -212,6 +189,8 @@ public class MainActivity extends AppCompatActivity {
            Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
            paint.setColor(Color.BLACK);
            paint.setTextSize(textSize);
+           paint.setTypeface(Typeface.MONOSPACE);
+           paint.setFakeBoldText(true);
 
            int startX = (width - textSize * perLineWords) / 2;
            int startY = height / 3;
@@ -231,6 +210,58 @@ public class MainActivity extends AppCompatActivity {
            e.printStackTrace();
        }
         return textBitmap;
+    }
+
+    //生成集合bitmap
+    public Bitmap addList(List list,int width,int height){
+        int textSize = 15;
+        int padding = 10;
+        int textLinePadding = 3;
+        int perLineWords = (width - 2 * padding) / textSize;
+        int lineNum;
+
+        Bitmap listBitmap = Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
+        try {
+            Canvas canvas = new Canvas(listBitmap);
+            canvas.drawColor(Color.WHITE);
+
+            Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            paint.setColor(Color.BLACK);
+            paint.setTextSize(textSize);
+            String familyName = "微软雅黑";
+            Typeface font = Typeface.create(familyName, Typeface.NORMAL);
+            paint.setTypeface(font);
+            paint.setFakeBoldText(true);
+
+            String listItem,lineText;
+            int start, end;
+            int startX = padding;
+            int startY = 2 * padding;
+
+            for (int i = 0; i < list.size(); i++){
+                listItem = (String) list.get(i);
+                lineNum = listItem.length() / perLineWords;
+                lineNum = listItem.length() % perLineWords == 0 ? lineNum : lineNum + 1;
+                if (listItem.length() > perLineWords){
+                    for (int j = 0; j < lineNum; j++){
+                        start = j * perLineWords;
+                        end = start + perLineWords;
+                        lineText = listItem.substring(start, end > listItem.length() ? listItem.length() : end);
+                        canvas.drawText(lineText,startX,startY,paint);
+                        startY = startY + textSize + textLinePadding;
+                    }
+                }else{
+                    lineText = listItem;
+                    canvas.drawText(lineText,startX,startY,paint);
+                    startY = startY + textSize + textLinePadding;
+                }
+            }
+            canvas.save();
+            canvas.restore();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        return listBitmap;
     }
 
     //合并两个bitmap
