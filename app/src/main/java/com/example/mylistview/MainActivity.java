@@ -5,14 +5,20 @@ import android.os.Looper;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.*;
+import com.example.mylistview.adapter.LinearAdapter;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.EncodeHintType;
 import com.google.zxing.WriterException;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
+import com.zebra.sdk.comm.ConnectionException;
 import com.zebra.sdk.comm.TcpConnection;
 import com.zebra.sdk.graphics.ZebraImageFactory;
 import com.zebra.sdk.printer.PrinterLanguage;
@@ -29,9 +35,15 @@ import static android.graphics.Typeface.MONOSPACE;
 public class MainActivity extends AppCompatActivity {
     private ListView listView;
     private EditText editText;
-    private Button create;
-    private Button print;
+    private Button create,print;
     private ImageView imageView;
+    private RecyclerView recyclerView;
+    private View itemView;
+    private Bitmap bitmap,textBitmap,result;
+
+    private String begin = "^XA";	//标签格式以^XA开始
+    private String end = "^XZ";		//标签格式以^XZ结束
+    private String content = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,45 +59,116 @@ public class MainActivity extends AppCompatActivity {
         create = findViewById(R.id.create);
         imageView = findViewById(R.id.image);
 
-        print.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                String content = editText.getText().toString();
-                Bitmap bitmap = generateBitmap(content,180,180);
-                List list = new ArrayList();
-                list.add("aaa");
-                list.add("bbb");
-                list.add("ccc");
-                list.add("ddd");
-                list.add("测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试");
-                list.add("eee");
-                Bitmap listBitmap = addList(list,180,180);
-                Bitmap result = mixtureBitmap(bitmap,listBitmap);
-                doPrintQRCode(result);
-            }
-        });
+        recyclerView = findViewById(R.id.rv_main);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.addItemDecoration(new MyDecoration());
+
+        final List list = new ArrayList();
+        list.add("aaa");
+        list.add("bbb");
+        list.add("ccc");
+        list.add("ddd");
+        list.add("测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试");
+        list.add("eee");
 
         create.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                String content = editText.getText().toString();
-                Bitmap bitmap = generateBitmap(content,180,180);
+                //String content = editText.getText().toString();
                 //Bitmap textBitmap = addText("测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试",180,180);
-                List list = new ArrayList();
-                list.add("aaa");
-                list.add("bbb");
-                list.add("ccc");
-                list.add("ddd");
-                list.add("测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试");
-                list.add("eee");
 
-                Bitmap listBitmap = addList(list,180,180);
-                Bitmap result = mixtureBitmap(bitmap,listBitmap);
-                imageView.setImageBitmap(result);
+                String content = editText.getText().toString();
+                bitmap = generateBitmap(content,180,180);
+                //textBitmap = addText(content,180,180);
+                //result = mixtureBitmap(bitmap,textBitmap);
+                //imageView.setImageBitmap(result);
+
+                //Bitmap listBitmap = addList(list,180,180);
+                //Bitmap result = mixtureBitmap(bitmap,listBitmap);
+                //imageView.setImageBitmap(result);
+                recyclerView.setAdapter(new LinearAdapter(MainActivity.this,bitmap,content));
+            }
+        });
+
+        print.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+               String content = editText.getText().toString();
+                bitmap = generateBitmap(content,180,180);
+                recyclerView.setAdapter(new LinearAdapter(MainActivity.this,bitmap,content));
+                LinearLayoutManager layoutManager = new LinearLayoutManager(MainActivity.this,
+                        LinearLayoutManager.VERTICAL, false);
+                recyclerView.setLayoutManager(layoutManager);
+                for (int i = 0;i < recyclerView.getAdapter().getItemCount();i++){
+                    //LinearLayout layout = (LinearLayout) recyclerView.getChildAt(i);
+                    itemView = recyclerView.getLayoutManager().findViewByPosition(i);
+                    Bitmap itemBitmap = createViewBitmap(itemView);
+                    doPrintQRCode(itemBitmap);
+                }
             }
         });
     }
 
+    public Bitmap createViewBitmap(View view){
+        Bitmap bitmap = Bitmap.createBitmap(view.getWidth(),view.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        view.draw(canvas);
+        canvas.drawColor(Color.WHITE);
+        canvas.drawBitmap(bitmap,0,20,null);
+        canvas.save();
+        canvas.restore();
+        return bitmap;
+    }
+
+    class MyDecoration extends RecyclerView.ItemDecoration {
+        @Override
+        public void getItemOffsets(Rect outRect, View view, RecyclerView parent, RecyclerView.State state) {
+            super.getItemOffsets(outRect, view, parent, state);
+            //在下面加分割线
+            outRect.set(0,0,0,getResources().getDimensionPixelOffset(R.dimen.dividerHeight));
+        }
+    }
+
+    public void doPrint(final Bitmap bitmap){
+        new Thread(){
+            public void run() {
+                TcpConnection connection = new TcpConnection("192.168.1.17", TcpConnection.DEFAULT_ZPL_TCP_PORT);
+                MainActivity activity = new MainActivity();
+                try {
+                    connection.open();
+                    if (connection.isConnected()) {
+                        try {
+                            ZebraPrinter printer = ZebraPrinterFactory.getInstance(PrinterLanguage.ZPL, connection);
+                            Looper.prepare();
+                            activity.setChar("Hello World!",200,50,20,20);
+                            String zpl = activity.getZpl();
+                            connection.write(zpl.getBytes());
+                            printer.printImage(ZebraImageFactory.getImage(bitmap), 0, 20, 480, 360, false);
+                            Thread.sleep(500);
+                            //释放资源
+                            connection.close();
+                            Looper.myLooper().quit();
+                        }catch (Exception e) {
+                            connection.close();
+                            e.printStackTrace();
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }.start();
+    }
+
+    public void setChar(String str, int x, int y, int h, int w) {
+        content += "^FO" + x + "," + y + "^A0," + h + "," + w + "^FD" + str + "^FS";
+    }
+
+    public String getZpl() {
+        return begin + content + end;
+    }
+
+    //打印二维码
     private void doPrintQRCode(final Bitmap bitmap) {
         // 开启一个子线程
         new Thread() {
@@ -97,12 +180,10 @@ public class MainActivity extends AppCompatActivity {
                         try {
                             ZebraPrinter printer = ZebraPrinterFactory.getInstance(PrinterLanguage.ZPL, connection);
                             Looper.prepare();
-                            /*
                             //打印图片的另一种方法
-                            String str = "^XA\n^FO170,30\n^XGR:IMAGE.GRF,1,1^FS^XZ";
-                            printer.storeImage("R:IMAGE.GRF", ZebraImageFactory.getImage(bitmap), 360, 360);
-                            connection.write(str.getBytes());
-                            */
+                            //String str = "^XA\n^FO170,30\n^XGR:IMAGE.GRF,1,1^FS^XZ";
+                            //printer.storeImage("R:IMAGE.GRF", ZebraImageFactory.getImage(bitmap), 360, 360);
+                            //connection.write(str.getBytes());
                             printer.printImage(ZebraImageFactory.getImage(bitmap), 0, 20, 720, 360, false);
                             //确保数据已进入打印机
                             Thread.sleep(500);
